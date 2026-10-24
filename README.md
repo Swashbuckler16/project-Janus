@@ -55,8 +55,13 @@ flowchart LR
 │   │   ├── authentication/             # Authenticator implementations
 │   │   │   ├── PinAuthenticator.kt     # Verification bridge & telemetry
 │   │   │   └── ResearchAuthenticator.kt# Lab gatekeeper (Default PIN: 2468)
+│   │   ├── defense/                    # Enterprise Defensive Architecture (Phase 2)
+│   │   │   ├── DefenseManager.kt       # Persistent lockout orchestrator & tamper-resistant store
+│   │   │   ├── DefenseState.kt         # Real-time defensive telemetry snapshot
+│   │   │   ├── LockoutTier.kt          # Multi-tier levels (Normal, Throttled, Lockout, Critical)
+│   │   │   └── TokenBucket.kt          # High-precision traffic shaping algorithm
 │   │   ├── network/
-│   │   │   └── LabServer.kt            # Embedded NanoHTTPD daemon (Port 8080)
+│   │   │   └── LabServer.kt            # Embedded NanoHTTPD daemon with HTTP 429 enforcement
 │   │   ├── security/
 │   │   │   ├── crypto/
 │   │   │   │   ├── CryptoService.kt    # PBKDF2 (100k rounds), SHA-256, Constant-Time comparison
@@ -72,14 +77,17 @@ flowchart LR
 │   │   ├── MainActivity.kt             # Jetpack Compose UI routing & Lab controls
 │   │   ├── VaultHomeScreen.kt          # Simulated protected vault records
 │   │   ├── CompromiseReportScreen.kt   # Real-time compromise alert screen
-│   │   └── DefenseMode.kt              # Countermeasure modes (NONE, RATE_LIMIT)
+│   │   └── DefenseMode.kt              # Countermeasure policies (NONE, SLIDING_WINDOW, ENTERPRISE)
 │   └── src/test/java/                  # Comprehensive JUnit test suite
-│       └── com/atharva/securevault/security/
-│           └── CryptoServiceTest.kt    # Determinism, salt uniqueness, and timing unit tests
+│       └── com/atharva/securevault/
+│           ├── defense/
+│           │   └── TokenBucketTest.kt  # Rate limiting & token depletion tests
+│           └── security/
+│               └── CryptoServiceTest.kt# Determinism, salt uniqueness, and timing tests
 │
 ├── Python attack controller/
 │   └── Attack-Controller/
-│       ├── main.py                     # Attack runner & benchmarking CLI
+│       ├── main.py                     # Attack runner with HTTP 429 defense handling & cooldowns
 │       ├── pin_generator.py            # Zero-padded 4-digit PIN candidate generator
 │       ├── logger.py                   # CSV export & experiment logger
 │       └── Results/                    # Historical benchmark datasets
@@ -95,9 +103,15 @@ flowchart LR
 * **Dual Key Derivation Architecture**:
   * **Hardened Mode**: PBKDF2 with HMAC-SHA256, cryptographically random 128-bit salt, 100,000 iterations, and constant-time byte comparisons (`MessageDigest.isEqual`).
   * **Vulnerable Baseline Mode**: Raw unsalted SHA-256 with intentional early-exit comparisons to benchmark rainbow table exposure and timing side-channels.
+* **Token-Bucket Rate Limiting**: Regulates incoming request burst traffic (5 token burst capacity, 0.5 tokens/sec continuous refill) to prevent socket exhaustion and rapid hammering.
+* **Multi-Tier Progressive Lockout Engine**:
+  * **Tier 0 (0–3 failed attempts)**: Normal operation, zero latency penalty.
+  * **Tier 1 (4–5 failed attempts)**: Progressive artificial delay injection (+1500ms delay) to disrupt high-frequency automated scripts without locking legitimate users.
+  * **Tier 2 (6–9 failed attempts)**: Hard temporary lockout with exponential backoff (30s $\rightarrow$ 60s $\rightarrow$ 120s $\rightarrow$ 300s). Inbound requests rejected with HTTP 429 (`Retry-After`).
+  * **Tier 3 (10+ failed attempts)**: Critical system lockdown requiring security lab reset.
+* **Tamper-Resistant Persistence**: Failed attempt counters and lockout timestamps persist across app restarts and process kills, thwarting reboot bypass techniques.
 * **Embedded Verification Daemon**: NanoHTTPD server runs directly in the Android process on port `8080`, allowing isolated authentication calls without cloud dependencies.
 * **Reactive Compromise Detection**: Jetpack Compose observes Kotlin Coroutine `StateFlow` streams. The moment the correct PIN is received via the API, the app transitions in real-time to a `CompromiseReportScreen` with telemetry metrics.
-* **Rate-Limiting Defense Mode**: Evaluates sliding window request throttling (e.g., maximum 5 attempts per 10-second window, yielding HTTP 429 `TOO_MANY_REQUESTS`).
 * **Nanosecond Telemetry Logging**: Measures internal cryptographic/verification latency (`responseTimeMs`, `executionTimeNanos`) separately from network latency and records timestamped CSV datasets in `Results/`.
 
 ---

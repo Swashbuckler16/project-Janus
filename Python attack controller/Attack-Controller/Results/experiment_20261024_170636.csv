@@ -1,0 +1,7 @@
+timestamp,pin,success,server_attempt,response_time_ms,network_time_ms,algorithm,constant_time,hardware_backed
+2026-10-24 17:06:37,0000,False,101,0,244.21,LEGACY_SHA256,False,True
+2026-10-24 17:06:37,0001,False,102,0,68.17,LEGACY_SHA256,False,True
+2026-10-24 17:06:37,0002,False,103,0,52.85,LEGACY_SHA256,False,True
+2026-10-24 17:06:37,0003,False,104,0,64.5,LEGACY_SHA256,False,True
+2026-10-24 17:06:37,0004,False,105,0,60.56,LEGACY_SHA256,False,True
+2026-10-24 17:06:37,0005,True,106,0,42.49,LEGACY_SHA256,False,True

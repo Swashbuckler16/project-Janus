@@ -13,6 +13,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.atharva.securevault.security.crypto.HashAlgorithm
+import com.atharva.securevault.defense.LockoutTier
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,7 +75,8 @@ class MainActivity : ComponentActivity() {
                     SecureVaultScreen(
                         onOpenLab = {
                             currentScreen = "research"
-                        }
+                        },
+                        labServer = labServer
                     )
                 }
 
@@ -129,17 +132,41 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun SecureVaultScreen(
-    onOpenLab: () -> Unit
+    onOpenLab: () -> Unit,
+    labServer: LabServer
 ) {
-
     var pin by remember { mutableStateOf("") }
     var attempts by remember { mutableStateOf(0) }
     var message by remember { mutableStateOf("Enter your 4-digit PIN") }
 
     val context = LocalContext.current
+    val authenticator = remember { PinAuthenticator(context) }
+    val defenseState by labServer.defenseManager.defenseState.collectAsState()
+    val defenseMode by labServer.defenseMode.collectAsState()
 
-    val authenticator = remember {
-        PinAuthenticator(context)
+    var remainingCooldown by remember { mutableStateOf(defenseState.remainingLockoutSeconds) }
+
+    LaunchedEffect(defenseState.remainingLockoutSeconds) {
+        remainingCooldown = defenseState.remainingLockoutSeconds
+        while (remainingCooldown > 0) {
+            delay(1000)
+            remainingCooldown -= 1
+        }
+    }
+
+    val isLockedOut = remainingCooldown > 0 || defenseState.tier == LockoutTier.PERMANENT_LOCKOUT
+
+    val statusMessage = when {
+        defenseState.tier == LockoutTier.PERMANENT_LOCKOUT -> "⚠️ CRITICAL LOCKOUT: Reset via Security Lab"
+        remainingCooldown > 0 -> "⚠️ DEVICE LOCKED OUT: Retry in ${remainingCooldown}s"
+        defenseState.tier == LockoutTier.THROTTLED -> "⚡ RATE THROTTLED (+1.5s delay)"
+        else -> message
+    }
+
+    val statusColor = when {
+        isLockedOut -> Color(0xFFEF4444)
+        defenseState.tier == LockoutTier.THROTTLED -> Color(0xFFFBBF24)
+        else -> Color.LightGray
     }
 
     Column(
@@ -150,9 +177,8 @@ fun SecureVaultScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-
         Text(
-            text = "🔒",
+            text = if (isLockedOut) "🚨" else "🔒",
             fontSize = 48.sp
         )
 
@@ -168,12 +194,13 @@ fun SecureVaultScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "DEVICE LOCKED",
-            color = Color.Gray,
-            fontSize = 14.sp
+            text = if (isLockedOut) "SECURITY LOCKDOWN ACTIVE" else "DEVICE LOCKED",
+            color = if (isLockedOut) Color(0xFFEF4444) else Color.Gray,
+            fontSize = 14.sp,
+            fontWeight = if (isLockedOut) FontWeight.Bold else FontWeight.Normal
         )
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(26.dp))
 
         Text(
             text = if (pin.isEmpty()) "• • • •"
@@ -183,16 +210,17 @@ fun SecureVaultScreen(
             letterSpacing = 8.sp
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = message,
-            color = Color.LightGray,
+            text = statusMessage,
+            color = statusColor,
             fontSize = 14.sp,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            fontWeight = if (isLockedOut) FontWeight.SemiBold else FontWeight.Normal
         )
 
-        Spacer(modifier = Modifier.height(25.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         val numbers = listOf(
             listOf("1", "2", "3"),
@@ -202,75 +230,72 @@ fun SecureVaultScreen(
         )
 
         numbers.forEach { row ->
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-
                 row.forEach { number ->
-
                     Button(
                         onClick = {
-
-                            if (number == "⌫") {
-
-                                if (pin.isNotEmpty()) {
-                                    pin = pin.dropLast(1)
-                                }
-
-                            } else if (number.isNotEmpty() && pin.length < 4) {
-
-                                pin += number
-
-                                if (pin.length == 4) {
-
-                                    attempts++
-
-                                    if (authenticator.verify(pin)) {
-                                        message = "✓ ACCESS GRANTED"
-                                    } else {
-                                        message = "✗ INCORRECT PIN"
-                                        pin = ""
+                            if (!isLockedOut) {
+                                if (number == "⌫") {
+                                    if (pin.isNotEmpty()) {
+                                        pin = pin.dropLast(1)
+                                    }
+                                } else if (number.isNotEmpty() && pin.length < 4) {
+                                    pin += number
+                                    if (pin.length == 4) {
+                                        attempts++
+                                        val isCorrect = authenticator.verify(pin)
+                                        labServer.defenseManager.recordAttemptResult(isCorrect, defenseMode)
+                                        if (isCorrect) {
+                                            message = "✓ ACCESS GRANTED"
+                                        } else {
+                                            message = "✗ INCORRECT PIN"
+                                            pin = ""
+                                        }
                                     }
                                 }
                             }
                         },
+                        enabled = !isLockedOut,
                         modifier = Modifier.size(75.dp),
                         shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF25272C)
+                            containerColor = if (isLockedOut) Color(0xFF1E2024) else Color(0xFF25272C),
+                            disabledContainerColor = Color(0xFF17181C)
                         )
                     ) {
-
                         Text(
                             text = number,
                             fontSize = 22.sp,
-                            color = Color.White
+                            color = if (isLockedOut) Color.DarkGray else Color.White
                         )
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Attempts: $attempts",
+            text = "Failed Attempts: ${defenseState.failedAttempts}",
             color = Color.Gray,
             fontSize = 14.sp
         )
-        Spacer(modifier = Modifier.height(24.dp))
+
+        Spacer(modifier = Modifier.height(20.dp))
 
         Button(
             onClick = onOpenLab,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
         ) {
             Text(
                 text = "SECURITY LAB",
-                fontSize = 14.sp
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
@@ -443,9 +468,9 @@ fun SecurityLabScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Defense Mode Toggle
+        // Defense Mode Selection
         Text(
-            text = "DEFENSIVE COUNTERMEASURES",
+            text = "DEFENSIVE POLICY",
             color = Color.White,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold
@@ -453,21 +478,90 @@ fun SecurityLabScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Button(
-            onClick = {
-                val nextMode = if (defenseMode == DefenseMode.NONE) DefenseMode.RATE_LIMIT else DefenseMode.NONE
-                labServer.setDefenseMode(nextMode)
-            },
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (defenseMode == DefenseMode.RATE_LIMIT) Color(0xFF059669) else Color(0xFF374151)
-            )
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Button(
+                onClick = { labServer.setDefenseMode(DefenseMode.ENTERPRISE_TOKEN_BUCKET) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (defenseMode == DefenseMode.ENTERPRISE_TOKEN_BUCKET) Color(0xFF059669) else Color(0xFF1F2228)
+                )
+            ) {
+                Text("🛡️ Enterprise Defense (Token-Bucket & Progressive Lockout)", fontSize = 12.sp, color = Color.White)
+            }
+
+            Button(
+                onClick = { labServer.setDefenseMode(DefenseMode.SLIDING_WINDOW) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (defenseMode == DefenseMode.SLIDING_WINDOW) Color(0xFFD97706) else Color(0xFF1F2228)
+                )
+            ) {
+                Text("⏱️ Sliding Window (5 req / 10s)", fontSize = 12.sp, color = Color.White)
+            }
+
+            Button(
+                onClick = { labServer.setDefenseMode(DefenseMode.NONE) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (defenseMode == DefenseMode.NONE) Color(0xFFDC2626) else Color(0xFF1F2228)
+                )
+            ) {
+                Text("⚠️ Unprotected (No Defense)", fontSize = 12.sp, color = Color.White)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Live Defense Diagnostics Card
+        val defenseState by labServer.defenseManager.defenseState.collectAsState()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF181A1F), shape = RoundedCornerShape(12.dp))
+                .padding(14.dp)
         ) {
             Text(
-                text = if (defenseMode == DefenseMode.RATE_LIMIT) "✓ Rate Limiter: ACTIVE (Max 5 req/10s)" else "Rate Limiter: OFF (Unprotected)",
-                fontSize = 14.sp,
+                text = "DEFENSE DIAGNOSTICS",
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "Current Level: ${defenseState.tier.displayName}",
+                color = when (defenseState.tier) {
+                    LockoutTier.NORMAL -> Color(0xFF4ADE80)
+                    LockoutTier.THROTTLED -> Color(0xFFFBBF24)
+                    else -> Color(0xFFEF4444)
+                },
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
+            )
+
+            Text(
+                text = "Failed Attempts: ${defenseState.failedAttempts}",
+                color = Color.LightGray,
+                fontSize = 12.sp
+            )
+
+            Text(
+                text = "Lockout State: ${if (defenseState.remainingLockoutSeconds > 0) "${defenseState.remainingLockoutSeconds}s cooldown" else "Unlocked"}",
+                color = if (defenseState.remainingLockoutSeconds > 0) Color(0xFFEF4444) else Color(0xFF4ADE80),
+                fontSize = 12.sp
+            )
+
+            Text(
+                text = "Token Balance: ${String.format("%.1f", defenseState.remainingTokens)} / 5.0 tokens",
+                color = Color.LightGray,
+                fontSize = 12.sp
             )
         }
 

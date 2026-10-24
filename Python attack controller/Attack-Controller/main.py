@@ -47,6 +47,29 @@ def test_pin(pin: str, target_ip: str, target_port: int):
         }
 
     except HTTPError as e:
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        if e.code == 429:
+            try:
+                error_body = json.loads(e.read().decode("utf-8"))
+            except Exception:
+                error_body = {}
+            retry_header = e.headers.get("Retry-After")
+            retry_after = int(retry_header) if retry_header and retry_header.isdigit() else int(error_body.get("retryAfterSeconds") or 1)
+            return {
+                "success": False,
+                "rate_limited": True,
+                "tier": error_body.get("tier", "RATE_LIMIT"),
+                "failed_attempts": error_body.get("failedAttempts"),
+                "retry_after": retry_after,
+                "reason": error_body.get("reason", "Defensive rate limit triggered"),
+                "attempt": None,
+                "response_time_ms": round(elapsed_ms, 2),
+                "execution_time_nanos": None,
+                "algorithm": None,
+                "constant_time": None,
+                "hardware_backed": None,
+                "network_time_ms": round(elapsed_ms, 2)
+            }
         print(f"HTTP error: {e.code}")
         return None
 
@@ -101,6 +124,12 @@ def get_config():
         help="Maximum number of authentication attempts"
     )
 
+    parser.add_argument(
+        "--wait-on-rate-limit",
+        action="store_true",
+        help="If rate limited (HTTP 429), sleep for the cooldown duration and retry"
+    )
+
     return parser.parse_args()
 
 
@@ -136,21 +165,25 @@ if __name__ == "__main__":
     experiment_start = time.perf_counter()
 
     total_attempts = 0
+    rate_limit_events = 0
     found_pin = None
     total_response_time = 0
 
     try:
 
-        for pin in generate_pins(config.start, config.end):
+        pin_iterator = generate_pins(config.start, config.end)
+        current_pin = next(pin_iterator, None)
+
+        while current_pin is not None:
 
             if total_attempts >= config.max_attempts:
                 print("Maximum attempt limit reached.")
                 break
 
-            print(f"Testing PIN: {pin}")
+            print(f"Testing PIN: {current_pin}")
 
             result = test_pin(
-                pin,
+                current_pin,
                 config.ip,
                 config.port
             )
@@ -159,45 +192,72 @@ if __name__ == "__main__":
                 print("Connection failed.")
                 break
 
-            if total_attempts == 0:
-                print(f"[*] Target Profile:")
-                print(f"    - Algorithm       : {result.get('algorithm')}")
-                print(f"    - Constant Time   : {result.get('constant_time')}")
-                print(f"    - Hardware-Backed : {result.get('hardware_backed')}\n")
+            # Handle HTTP 429 Rate Limiting & Lockout
+            if result.get("rate_limited"):
+                rate_limit_events += 1
+                tier = result.get("tier", "RATE_LIMIT")
+                retry_after = result.get("retry_after", 1)
+                reason = result.get("reason", "Throttled")
 
-            total_attempts += 1
+                print(f"  [!] HTTP 429 DEFENSE INTERVENTION: Level: {tier} | Cooldown: {retry_after}s | {reason}")
 
-            response_time = result["response_time_ms"]
+                writer.writerow([
+                    time.strftime("%Y-%m-%d %H:%M:%S"),
+                    current_pin,
+                    "RATE_LIMITED_429",
+                    result.get("failed_attempts"),
+                    result["response_time_ms"],
+                    result["network_time_ms"],
+                    tier,
+                    "N/A",
+                    "N/A"
+                ])
+                log_file.flush()
 
-            if response_time is not None:
-                total_response_time += response_time
+                if config.wait_on_rate_limit:
+                    print(f"  [*] Waiting {retry_after}s for defense cooldown before retry...")
+                    time.sleep(retry_after)
+                    # Retry the same PIN
+                    continue
+                else:
+                    print("  [*] --wait-on-rate-limit not set. Continuing to next PIN candidate.\n")
 
-            writer.writerow([
-                time.strftime("%Y-%m-%d %H:%M:%S"),
-                pin,
-                result["success"],
-                result["attempt"],
-                result["response_time_ms"],
-                result["network_time_ms"],
-                result.get("algorithm"),
-                result.get("constant_time"),
-                result.get("hardware_backed")
-            ])
+            else:
+                if total_attempts == 0:
+                    print(f"[*] Target Profile:")
+                    print(f"    - Algorithm       : {result.get('algorithm')}")
+                    print(f"    - Constant Time   : {result.get('constant_time')}")
+                    print(f"    - Hardware-Backed : {result.get('hardware_backed')}\n")
 
-            log_file.flush()
+                total_attempts += 1
+                response_time = result["response_time_ms"]
+                if response_time is not None:
+                    total_response_time += response_time
 
-            if result["success"]:
+                writer.writerow([
+                    time.strftime("%Y-%m-%d %H:%M:%S"),
+                    current_pin,
+                    result["success"],
+                    result["attempt"],
+                    result["response_time_ms"],
+                    result["network_time_ms"],
+                    result.get("algorithm"),
+                    result.get("constant_time"),
+                    result.get("hardware_backed")
+                ])
+                log_file.flush()
 
-                found_pin = pin
-
-                print()
-                print(f"SUCCESS → PIN {pin}")
-                print()
-
-                break
+                if result["success"]:
+                    found_pin = current_pin
+                    print()
+                    print(f"SUCCESS → PIN {current_pin}")
+                    print()
+                    break
 
             if config.delay > 0:
                 time.sleep(config.delay)
+
+            current_pin = next(pin_iterator, None)
 
     finally:
 
@@ -210,21 +270,22 @@ if __name__ == "__main__":
     print("EXPERIMENT SUMMARY")
     print("=" * 45)
 
-    print(f"Attempts          : {total_attempts}")
-    print(f"Elapsed time      : {elapsed:.2f} seconds")
+    print(f"Attempts Completed    : {total_attempts}")
+    print(f"Defense Interventions : {rate_limit_events} (HTTP 429)")
+    print(f"Elapsed time          : {elapsed:.2f} seconds")
 
     if elapsed > 0:
         rate = total_attempts / elapsed
-        print(f"Requests/second   : {rate:.2f}")
+        print(f"Requests/second       : {rate:.2f}")
 
     if total_attempts > 0:
         average = total_response_time / total_attempts
-        print(f"Avg response time : {average:.2f} ms")
+        print(f"Avg response time     : {average:.2f} ms")
 
     if found_pin:
-        print(f"PIN discovered    : {found_pin}")
+        print(f"PIN discovered        : {found_pin}")
     else:
-        print("PIN discovered    : No")
+        print("PIN discovered        : No")
 
     print()
     print(f"Log file          : {filename}")

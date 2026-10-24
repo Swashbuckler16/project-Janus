@@ -1,0 +1,7 @@
+timestamp,pin,success,server_attempt,response_time_ms,network_time_ms,algorithm,constant_time,hardware_backed
+2026-10-24 17:08:43,0000,False,1,445,637.75,PBKDF2_HMAC_SHA256,True,True
+2026-10-24 17:08:44,0001,False,2,437,522.88,PBKDF2_HMAC_SHA256,True,True
+2026-10-24 17:08:44,0002,False,3,438,473.28,PBKDF2_HMAC_SHA256,True,True
+2026-10-24 17:08:45,0003,False,4,438,495.88,PBKDF2_HMAC_SHA256,True,True
+2026-10-24 17:08:45,0004,False,5,437,512.02,PBKDF2_HMAC_SHA256,True,True
+2026-10-24 17:08:46,0005,True,6,442,487.72,PBKDF2_HMAC_SHA256,True,True
