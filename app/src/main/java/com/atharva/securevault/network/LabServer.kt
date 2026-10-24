@@ -123,22 +123,25 @@ class LabServer(
                 _experimentStartTime.value = System.currentTimeMillis()
             }
 
-            val startTime = System.nanoTime()
+            val telemetry = authenticator.verifyWithTelemetry(pin)
+            val success = telemetry.isSuccess
 
-            val success = authenticator.verify(pin)
             if (success) {
                 _vaultUnlocked.value = true
                 _successfulAttempt.value = attempt
             }
 
-            val responseTimeMs =
-                (System.nanoTime() - startTime) / 1_000_000
+            val responseTimeMs = telemetry.executionTimeMs.toLong()
             _lastResponseTime.value = responseTimeMs
 
             val response = JSONObject().apply {
                 put("success", success)
                 put("attempt", attempt)
                 put("responseTimeMs", responseTimeMs)
+                put("executionTimeNanos", telemetry.executionTimeNanos)
+                put("algorithm", telemetry.algorithm.name)
+                put("constantTime", telemetry.isConstantTime)
+                put("hardwareBacked", telemetry.isHardwareBacked)
             }
 
             newFixedLengthResponse(

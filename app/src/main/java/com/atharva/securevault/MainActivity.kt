@@ -10,6 +10,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.atharva.securevault.security.crypto.HashAlgorithm
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -282,53 +285,120 @@ fun SecurityLabScreen(
 
     val context = LocalContext.current
     val pinStore = remember { LabPinStore(context) }
+    var selectedAlgorithm by remember { mutableStateOf(pinStore.getActiveAlgorithm()) }
     val attempts by labServer.attempts.collectAsState()
+    val defenseMode by labServer.defenseMode.collectAsState()
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF101114))
+            .verticalScroll(scrollState)
             .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Button(
-            onClick = onBack,
-            shape = RoundedCornerShape(12.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start
         ) {
-            Text("← BACK")
+            Button(
+                onClick = onBack,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25272C))
+            ) {
+                Text("← BACK", color = Color.White)
+            }
         }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Text(
-            text = "🛡️",
-            fontSize = 48.sp
-        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "SECURITY RESEARCH LAB",
+            text = "🏛️",
+            fontSize = 44.sp
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(
+            text = "PROJECT JANUS LAB",
             color = Color.White,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
         Text(
-            text = "Controlled authentication testing",
+            text = "Authentication Benchmark & Telemetry",
             color = Color.Gray,
-            fontSize = 14.sp
+            fontSize = 13.sp
         )
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
+        // Hardware Keystore Status Badge
+        Row(
+            modifier = Modifier
+                .background(
+                    if (pinStore.isHardwareProtected()) Color(0xFF0F3822) else Color(0xFF3B2E10),
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (pinStore.isHardwareProtected()) "🔒 Hardware TEE / StrongBox Protected" else "🛡️ Keystore AES-256-GCM Active",
+                color = if (pinStore.isHardwareProtected()) Color(0xFF4ADE80) else Color(0xFFFBBF24),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Key Derivation Selector
+        Text(
+            text = "KEY DERIVATION ALGORITHM",
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = { selectedAlgorithm = HashAlgorithm.PBKDF2_HMAC_SHA256 },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedAlgorithm == HashAlgorithm.PBKDF2_HMAC_SHA256) Color(0xFF2563EB) else Color(0xFF1F2228)
+                )
+            ) {
+                Text("PBKDF2 (100k)", fontSize = 12.sp, color = Color.White)
+            }
+
+            Button(
+                onClick = { selectedAlgorithm = HashAlgorithm.LEGACY_SHA256 },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selectedAlgorithm == HashAlgorithm.LEGACY_SHA256) Color(0xFFDC2626) else Color(0xFF1F2228)
+                )
+            ) {
+                Text("SHA-256 (Legacy)", fontSize = 12.sp, color = Color.White)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Target PIN Configuration
         Text(
             text = "TARGET PIN",
             color = Color.White,
-            fontSize = 16.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Bold
         )
 
@@ -337,98 +407,100 @@ fun SecurityLabScreen(
         androidx.compose.material3.OutlinedTextField(
             value = targetPin,
             onValueChange = { value ->
-
                 if (value.length <= 4 && value.all { it.isDigit() }) {
                     targetPin = value
                     saveMessage = ""
                 }
-
             },
-            label = {
-                Text("Enter 4-digit PIN")
-            },
+            label = { Text("Enter 4-digit PIN") },
             singleLine = true
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Button(
             onClick = {
-
                 if (targetPin.length == 4) {
-
-                    pinStore.savePin(targetPin)
-
-                    saveMessage = "✓ Target PIN configured"
-
+                    pinStore.savePin(targetPin, selectedAlgorithm)
+                    saveMessage = "✓ Saved with ${selectedAlgorithm.name}"
                 } else {
-
                     saveMessage = "Enter exactly 4 digits"
-
                 }
-
             },
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(10.dp)
         ) {
-            Text("SAVE TARGET")
+            Text("SAVE TARGET PIN")
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = saveMessage,
-            color = Color.LightGray,
-            fontSize = 14.sp
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Defense Configuration",
-            color = Color.White,
-            fontSize = 16.sp
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Button(
-            onClick = { },
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text("No Protection")
+        if (saveMessage.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = saveMessage,
+                color = Color(0xFF38BDF8),
+                fontSize = 13.sp
+            )
         }
-        Spacer(modifier = Modifier.height(24.dp))
 
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Defense Mode Toggle
         Text(
-            text = "ATTACK STATUS",
+            text = "DEFENSIVE COUNTERMEASURES",
             color = Color.White,
-            fontSize = 16.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        Button(
+            onClick = {
+                val nextMode = if (defenseMode == DefenseMode.NONE) DefenseMode.RATE_LIMIT else DefenseMode.NONE
+                labServer.setDefenseMode(nextMode)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (defenseMode == DefenseMode.RATE_LIMIT) Color(0xFF059669) else Color(0xFF374151)
+            )
+        ) {
+            Text(
+                text = if (defenseMode == DefenseMode.RATE_LIMIT) "✓ Rate Limiter: ACTIVE (Max 5 req/10s)" else "Rate Limiter: OFF (Unprotected)",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Attack Status & Reset
         Text(
-            text = "API Attempts: $attempts",
+            text = "ATTACK & TELEMETRY STATUS",
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Text(
+            text = "Server Attempts: $attempts",
             color = Color.LightGray,
             fontSize = 16.sp
         )
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         Button(
-            onClick = { },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
-            shape = RoundedCornerShape(14.dp)
+            onClick = { labServer.resetAttempts() },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25272C))
         ) {
-            Text(
-                text = "START EXPERIMENT",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("RESET TELEMETRY & LOCK", color = Color.White)
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 @Composable

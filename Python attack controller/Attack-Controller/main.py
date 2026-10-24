@@ -39,6 +39,10 @@ def test_pin(pin: str, target_ip: str, target_port: int):
             "success": result.get("success", False),
             "attempt": result.get("attempt"),
             "response_time_ms": result.get("responseTimeMs"),
+            "execution_time_nanos": result.get("executionTimeNanos"),
+            "algorithm": result.get("algorithm", "UNKNOWN"),
+            "constant_time": result.get("constantTime", False),
+            "hardware_backed": result.get("hardwareBacked", False),
             "network_time_ms": round(elapsed_ms, 2)
         }
 
@@ -155,6 +159,12 @@ if __name__ == "__main__":
                 print("Connection failed.")
                 break
 
+            if total_attempts == 0:
+                print(f"[*] Target Profile:")
+                print(f"    - Algorithm       : {result.get('algorithm')}")
+                print(f"    - Constant Time   : {result.get('constant_time')}")
+                print(f"    - Hardware-Backed : {result.get('hardware_backed')}\n")
+
             total_attempts += 1
 
             response_time = result["response_time_ms"]
@@ -168,7 +178,10 @@ if __name__ == "__main__":
                 result["success"],
                 result["attempt"],
                 result["response_time_ms"],
-                result["network_time_ms"]
+                result["network_time_ms"],
+                result.get("algorithm"),
+                result.get("constant_time"),
+                result.get("hardware_backed")
             ])
 
             log_file.flush()

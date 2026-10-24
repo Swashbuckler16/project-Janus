@@ -51,19 +51,31 @@ flowchart LR
 
 ```
 ├── app/                                 # Android application source
-│   └── src/main/java/com/atharva/securevault/
-│       ├── authentication/             # Authenticator implementations
-│       │   ├── PinAuthenticator.kt     # Verification bridge
-│       │   └── ResearchAuthenticator.kt# Lab gatekeeper (Default PIN: 2468)
-│       ├── network/
-│       │   └── LabServer.kt            # Embedded NanoHTTPD verification server
-│       ├── security/
-│       │   ├── LabPinStore.kt          # SHA-256 PIN persistence in SharedPreferences
-│       │   └── PinVerifier.kt          # Constant-time hashing & comparison
-│       ├── MainActivity.kt             # Jetpack Compose UI routing & app lifecycle
-│       ├── VaultHomeScreen.kt          # Simulated protected vault records
-│       ├── CompromiseReportScreen.kt   # Real-time compromise alert screen
-│       └── DefenseMode.kt              # Countermeasure modes (NONE, RATE_LIMIT)
+│   ├── src/main/java/com/atharva/securevault/
+│   │   ├── authentication/             # Authenticator implementations
+│   │   │   ├── PinAuthenticator.kt     # Verification bridge & telemetry
+│   │   │   └── ResearchAuthenticator.kt# Lab gatekeeper (Default PIN: 2468)
+│   │   ├── network/
+│   │   │   └── LabServer.kt            # Embedded NanoHTTPD daemon (Port 8080)
+│   │   ├── security/
+│   │   │   ├── crypto/
+│   │   │   │   ├── CryptoService.kt    # PBKDF2 (100k rounds), SHA-256, Constant-Time comparison
+│   │   │   │   └── HashAlgorithm.kt    # Algorithm enum (PBKDF2_HMAC_SHA256 vs LEGACY_SHA256)
+│   │   │   ├── domain/
+│   │   │   │   └── VerificationResult.kt # High-resolution execution & security telemetry
+│   │   │   ├── keystore/
+│   │   │   │   └── KeyStoreManager.kt  # Android Keystore hardware-backed AES-256-GCM
+│   │   │   ├── storage/
+│   │   │   │   └── SecurePinStore.kt   # Encrypted credential persistence at rest
+│   │   │   ├── LabPinStore.kt          # Lab configuration bridge
+│   │   │   └── PinVerifier.kt          # Dual-mode cryptographic verifier
+│   │   ├── MainActivity.kt             # Jetpack Compose UI routing & Lab controls
+│   │   ├── VaultHomeScreen.kt          # Simulated protected vault records
+│   │   ├── CompromiseReportScreen.kt   # Real-time compromise alert screen
+│   │   └── DefenseMode.kt              # Countermeasure modes (NONE, RATE_LIMIT)
+│   └── src/test/java/                  # Comprehensive JUnit test suite
+│       └── com/atharva/securevault/security/
+│           └── CryptoServiceTest.kt    # Determinism, salt uniqueness, and timing unit tests
 │
 ├── Python attack controller/
 │   └── Attack-Controller/
@@ -79,10 +91,14 @@ flowchart LR
 
 ## Features
 
+* **Hardware-Backed Keystore (TEE / StrongBox)**: Master keys generated directly inside Android's hardware security module with AES-256-GCM, encrypting verification records and salts at rest.
+* **Dual Key Derivation Architecture**:
+  * **Hardened Mode**: PBKDF2 with HMAC-SHA256, cryptographically random 128-bit salt, 100,000 iterations, and constant-time byte comparisons (`MessageDigest.isEqual`).
+  * **Vulnerable Baseline Mode**: Raw unsalted SHA-256 with intentional early-exit comparisons to benchmark rainbow table exposure and timing side-channels.
 * **Embedded Verification Daemon**: NanoHTTPD server runs directly in the Android process on port `8080`, allowing isolated authentication calls without cloud dependencies.
 * **Reactive Compromise Detection**: Jetpack Compose observes Kotlin Coroutine `StateFlow` streams. The moment the correct PIN is received via the API, the app transitions in real-time to a `CompromiseReportScreen` with telemetry metrics.
 * **Rate-Limiting Defense Mode**: Evaluates sliding window request throttling (e.g., maximum 5 attempts per 10-second window, yielding HTTP 429 `TOO_MANY_REQUESTS`).
-* **Empirical Latency Logging**: Measures internal cryptographic/verification latency (`responseTimeMs`) separately from end-to-end network latency (`network_time_ms`) and records timestamped CSV datasets in `Results/`.
+* **Nanosecond Telemetry Logging**: Measures internal cryptographic/verification latency (`responseTimeMs`, `executionTimeNanos`) separately from network latency and records timestamped CSV datasets in `Results/`.
 
 ---
 

@@ -27,7 +27,10 @@ def create_log_file():
         "success",
         "server_attempt",
         "response_time_ms",
-        "network_time_ms"
+        "network_time_ms",
+        "algorithm",
+        "constant_time",
+        "hardware_backed"
     ])
 
     return file, writer, filename

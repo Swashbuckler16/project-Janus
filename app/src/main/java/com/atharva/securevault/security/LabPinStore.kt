@@ -1,34 +1,30 @@
 package com.atharva.securevault.security
 
 import android.content.Context
-import java.security.MessageDigest
+import com.atharva.securevault.security.crypto.HashAlgorithm
+import com.atharva.securevault.security.storage.SecurePinStore
 
+/**
+ * High-level laboratory PIN configuration store.
+ * Backed by [SecurePinStore] with hardware-backed AES-256-GCM encryption.
+ */
 class LabPinStore(context: Context) {
 
-    private val preferences = context.getSharedPreferences(
-        "secure_vault_lab",
-        Context.MODE_PRIVATE
-    )
+    private val secureStore = SecurePinStore(context)
 
-    fun savePin(pin: String) {
-        val hash = hashPin(pin)
-
-        preferences.edit()
-            .putString("pin_verifier", hash)
-            .apply()
+    fun savePin(pin: String, algorithm: HashAlgorithm = HashAlgorithm.PBKDF2_HMAC_SHA256) {
+        secureStore.savePin(pin, algorithm)
     }
 
-    fun getVerifier(): String? {
-        return preferences.getString("pin_verifier", null)
+    fun getActiveAlgorithm(): HashAlgorithm {
+        return secureStore.getActiveAlgorithm()
     }
 
-    private fun hashPin(pin: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
+    fun isConfigured(): Boolean {
+        return secureStore.isConfigured()
+    }
 
-        return digest
-            .digest(pin.toByteArray())
-            .joinToString("") {
-                "%02x".format(it)
-            }
+    fun isHardwareProtected(): Boolean {
+        return secureStore.isHardwareProtected()
     }
 }
