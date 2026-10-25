@@ -24,3 +24,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "Project Janus"
 include(":app")
+include(":core:security")
+include(":core:defense")
+include(":core:network")

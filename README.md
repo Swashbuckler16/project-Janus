@@ -1,10 +1,11 @@
 # Project Janus 🏛️
 > **Dual-Faced Mobile Authentication Security & PIN Enumeration Research Testbed**
 
+[![CI/CD](https://github.com/Swashbuckler16/project-Janus/actions/workflows/ci.yml/badge.svg)](https://github.com/Swashbuckler16/project-Janus/actions/workflows/ci.yml)
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
+[![Architecture](https://img.shields.io/badge/Architecture-Modular%20Multi--Module-orange.svg)](#multi-module-gradle-architecture)
 [![Language](https://img.shields.io/badge/Language-Kotlin%20%7C%20Python%203-blue.svg)](https://kotlinlang.org)
 [![UI](https://img.shields.io/badge/UI-Jetpack%20Compose-purple.svg)](https://developer.android.com/jetpack/compose)
-[![Research](https://img.shields.io/badge/Focus-Auth%20Security%20%26%20Rate%20Limiting-red.svg)](#overview)
 
 ---
 
@@ -18,31 +19,21 @@ Project Janus simulates a high-security mobile vault app with an embedded resear
 
 ---
 
-## Architecture
+## Multi-Module Gradle Architecture
 
 ```mermaid
-flowchart LR
-    subgraph Host["Attack Controller (Host Machine)"]
-        CLI["main.py (CLI Harness)"]
-        GEN["pin_generator.py"]
-        LOG["logger.py -> Results/*.csv"]
-        CLI --> GEN
-        CLI --> LOG
-    end
+graph TD
+    App[":app<br/>(UI, Jetpack Compose, Activities, DI)"]
+    CoreNet[":core:network<br/>(Embedded NanoHTTPD Daemon :8080)"]
+    CoreDef[":core:defense<br/>(TokenBucket, LockoutManager, DefenseTiers)"]
+    CoreSec[":core:security<br/>(Keystore AES-256-GCM, PBKDF2, PinVerifier)"]
 
-    subgraph Device["Android Device / Emulator (Project Janus)"]
-        HTTP["LabServer (NanoHTTPD :8080)\nPOST /lab/verify"]
-        DEF["Defense Governor\n(Sliding Window Rate Limiter)"]
-        STORE["LabPinStore\n(SHA-256 Verifier)"]
-        UI["Jetpack Compose UI\n(Lock Screen / Compromise State)"]
-        
-        HTTP --> DEF
-        DEF --> STORE
-        STORE --> UI
-    end
+    App --> CoreNet
+    App --> CoreDef
+    App --> CoreSec
 
-    CLI -- "POST /lab/verify (JSON)" --> HTTP
-    HTTP -- "Response Time & Status" --> CLI
+    CoreNet --> CoreDef
+    CoreNet --> CoreSec
 ```
 
 ---
@@ -50,47 +41,67 @@ flowchart LR
 ## Repository Structure
 
 ```
-├── app/                                 # Android application source
+├── app/                                 # Android application presentation & orchestration
 │   ├── src/main/java/com/atharva/securevault/
-│   │   ├── authentication/             # Authenticator implementations
-│   │   │   ├── PinAuthenticator.kt     # Verification bridge & telemetry
-│   │   │   └── ResearchAuthenticator.kt# Lab gatekeeper (Default PIN: 2468)
-│   │   ├── defense/                    # Enterprise Defensive Architecture (Phase 2)
-│   │   │   ├── DefenseManager.kt       # Persistent lockout orchestrator & tamper-resistant store
-│   │   │   ├── DefenseState.kt         # Real-time defensive telemetry snapshot
-│   │   │   ├── LockoutTier.kt          # Multi-tier levels (Normal, Throttled, Lockout, Critical)
-│   │   │   └── TokenBucket.kt          # High-precision traffic shaping algorithm
-│   │   ├── network/
-│   │   │   └── LabServer.kt            # Embedded NanoHTTPD daemon with HTTP 429 enforcement
-│   │   ├── security/
-│   │   │   ├── crypto/
-│   │   │   │   ├── CryptoService.kt    # PBKDF2 (100k rounds), SHA-256, Constant-Time comparison
-│   │   │   │   └── HashAlgorithm.kt    # Algorithm enum (PBKDF2_HMAC_SHA256 vs LEGACY_SHA256)
-│   │   │   ├── domain/
-│   │   │   │   └── VerificationResult.kt # High-resolution execution & security telemetry
-│   │   │   ├── keystore/
-│   │   │   │   └── KeyStoreManager.kt  # Android Keystore hardware-backed AES-256-GCM
-│   │   │   ├── storage/
-│   │   │   │   └── SecurePinStore.kt   # Encrypted credential persistence at rest
-│   │   │   ├── LabPinStore.kt          # Lab configuration bridge
-│   │   │   └── PinVerifier.kt          # Dual-mode cryptographic verifier
 │   │   ├── MainActivity.kt             # Jetpack Compose UI routing & Lab controls
 │   │   ├── VaultHomeScreen.kt          # Simulated protected vault records
 │   │   ├── CompromiseReportScreen.kt   # Real-time compromise alert screen
-│   │   └── DefenseMode.kt              # Countermeasure policies (NONE, SLIDING_WINDOW, ENTERPRISE)
-│   └── src/test/java/                  # Comprehensive JUnit test suite
-│       └── com/atharva/securevault/
-│           ├── defense/
-│           │   └── TokenBucketTest.kt  # Rate limiting & token depletion tests
-│           └── security/
-│               └── CryptoServiceTest.kt# Determinism, salt uniqueness, and timing tests
+│   │   └── authentication/
+│   │       └── ResearchAuthenticator.kt# Lab gatekeeper (Default PIN: 2468)
+│   └── build.gradle.kts
+│
+├── core/
+│   ├── security/                       # :core:security module
+│   │   ├── src/main/java/com/atharva/securevault/
+│   │   │   ├── security/
+│   │   │   │   ├── crypto/
+│   │   │   │   │   ├── CryptoService.kt    # PBKDF2 (100k rounds), SHA-256, Constant-Time comparison
+│   │   │   │   │   └── HashAlgorithm.kt    # Algorithm enum (PBKDF2_HMAC_SHA256 vs LEGACY_SHA256)
+│   │   │   │   ├── domain/
+│   │   │   │   │   └── VerificationResult.kt # High-resolution execution & security telemetry
+│   │   │   │   ├── keystore/
+│   │   │   │   │   └── KeyStoreManager.kt  # Android Keystore hardware-backed AES-256-GCM
+│   │   │   │   ├── storage/
+│   │   │   │   │   └── SecurePinStore.kt   # Encrypted credential persistence at rest
+│   │   │   │   ├── LabPinStore.kt          # Lab configuration bridge
+│   │   │   │   └── PinVerifier.kt          # Dual-mode cryptographic verifier
+│   │   │   └── authentication/
+│   │   │       └── PinAuthenticator.kt     # Verification bridge & telemetry
+│   │   ├── src/test/java/                  # Security Unit Tests
+│   │   │   └── com/atharva/securevault/security/
+│   │   │       ├── CryptoServiceTest.kt    # Determinism, salt uniqueness, and standard vectors
+│   │   │       └── TimingResistanceTest.kt # Side-channel timing resistance assertions
+│   │   └── build.gradle.kts
+│   │
+│   ├── defense/                        # :core:defense module
+│   │   ├── src/main/java/com/atharva/securevault/
+│   │   │   ├── defense/
+│   │   │   │   ├── DefenseManager.kt       # Persistent lockout orchestrator & tamper-resistant store
+│   │   │   │   ├── DefenseState.kt         # Real-time defensive telemetry snapshot
+│   │   │   │   ├── LockoutTier.kt          # Multi-tier levels (Normal, Throttled, Lockout, Critical)
+│   │   │   │   └── TokenBucket.kt          # High-precision traffic shaping algorithm
+│   │   │   └── DefenseMode.kt              # Countermeasure policies (NONE, SLIDING_WINDOW, ENTERPRISE)
+│   │   ├── src/test/java/                  # Defense Unit Tests
+│   │   │   └── com/atharva/securevault/defense/
+│   │   │       ├── TokenBucketTest.kt      # Traffic shaping & depletion tests
+│   │   │       └── TokenBucketConcurrencyTest.kt # Concurrent thread-safety & race condition tests
+│   │   └── build.gradle.kts
+│   │
+│   └── network/                        # :core:network module
+│       ├── src/main/java/com/atharva/securevault/network/
+│       │   └── LabServer.kt            # Embedded NanoHTTPD daemon with HTTP 429 enforcement
+│       └── build.gradle.kts
 │
 ├── Python attack controller/
 │   └── Attack-Controller/
 │       ├── main.py                     # Attack runner with HTTP 429 defense handling & cooldowns
 │       ├── pin_generator.py            # Zero-padded 4-digit PIN candidate generator
+│       ├── test_pin_generator.py       # Unit tests for attack harness
 │       ├── logger.py                   # CSV export & experiment logger
 │       └── Results/                    # Historical benchmark datasets
+│
+├── .github/workflows/
+│   └── ci.yml                          # Automated multi-module build, test & packaging CI pipeline
 │
 └── README.md
 ```

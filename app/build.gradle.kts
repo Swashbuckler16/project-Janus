@@ -48,8 +48,9 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.androidx.junit)
-    implementation("org.nanohttpd:nanohttpd:2.3.1")
+    implementation(project(":core:security"))
+    implementation(project(":core:defense"))
+    implementation(project(":core:network"))
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
