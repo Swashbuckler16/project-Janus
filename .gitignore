@@ -20,3 +20,8 @@ local.properties
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Attack Controller ephemeral test outputs
+**/Results/experiment_*.csv
+**/Results/archive/
+**/data/archive/

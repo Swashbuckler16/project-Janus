@@ -75,10 +75,18 @@ class SecurePinStore(
             .putString(KEY_ACTIVE_ALGORITHM, algorithm.name)
             .apply()
 
-        // Sync legacy key so older components continue to function during transition
-        legacyPrefs.edit()
-            .putString(LEGACY_VERIFIER_KEY, cryptoService.toHex(cryptoService.hashSha256(pin)))
-            .apply()
+        // Security Architecture Fix:
+        // Do NOT unconditionally persist unsalted SHA-256 in unencrypted SharedPreferences.
+        // In hardened mode, actively purge legacy credentials to prevent migration-shim leakage.
+        if (algorithm == HashAlgorithm.LEGACY_SHA256) {
+            legacyPrefs.edit()
+                .putString(LEGACY_VERIFIER_KEY, cryptoService.toHex(cryptoService.hashSha256(pin)))
+                .apply()
+        } else {
+            legacyPrefs.edit()
+                .remove(LEGACY_VERIFIER_KEY)
+                .apply()
+        }
     }
 
     /**

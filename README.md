@@ -2,8 +2,10 @@
 > **Dual-Faced Mobile Authentication Security & PIN Enumeration Research Testbed**
 
 [![CI/CD](https://github.com/Swashbuckler16/project-Janus/actions/workflows/ci.yml/badge.svg)](https://github.com/Swashbuckler16/project-Janus/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
 [![Architecture](https://img.shields.io/badge/Architecture-Modular%20Multi--Module-orange.svg)](#multi-module-gradle-architecture)
+[![Threat Model](https://img.shields.io/badge/Security-Threat%20Model%20%26%20Findings-red.svg)](THREAT_MODEL.md)
 [![Language](https://img.shields.io/badge/Language-Kotlin%20%7C%20Python%203-blue.svg)](https://kotlinlang.org)
 [![UI](https://img.shields.io/badge/UI-Jetpack%20Compose-purple.svg)](https://developer.android.com/jetpack/compose)
 
@@ -95,14 +97,21 @@ graph TD
 ├── Python attack controller/
 │   └── Attack-Controller/
 │       ├── main.py                     # Attack runner with HTTP 429 defense handling & cooldowns
+│       ├── analyze_results.py          # Visualization & statistical benchmark analysis suite
 │       ├── pin_generator.py            # Zero-padded 4-digit PIN candidate generator
 │       ├── test_pin_generator.py       # Unit tests for attack harness
 │       ├── logger.py                   # CSV export & experiment logger
-│       └── Results/                    # Historical benchmark datasets
+│       └── Results/                    # Benchmark datasets & generated publication charts
+│           ├── baseline_sha256_unprotected.csv
+│           ├── defended_tiered_lockout.csv
+│           ├── exhaustive_bruteforce_run.csv
+│           └── plots/                  # Visual publication plots (.png)
 │
 ├── .github/workflows/
 │   └── ci.yml                          # Automated multi-module build, test & packaging CI pipeline
 │
+├── THREAT_MODEL.md                     # Formal threat model, assumptions & quantitative findings
+├── LICENSE                             # MIT Open Source License
 └── README.md
 ```
 
@@ -160,8 +169,55 @@ python main.py --ip <DEVICE_IP> --port 8080 --start 0 --end 100 --delay 0.05
 * `--delay`: Throttle interval between consecutive requests in seconds (Default: `0.0`)
 * `--max-attempts`: Safety threshold to halt testing (Default: `100`)
 
+### 3. Generate Benchmark Analytics & Visualizations
+
+Transform raw CSV attack telemetry into publication-grade analytical plots:
+
+```bash
+cd "Python attack controller/Attack-Controller"
+python analyze_results.py
+```
+
+Generated plots in `Results/plots/`:
+* `latency_comparison.png`: Device cryptographic execution vs network roundtrip latency.
+* `keyspace_exhaustion.png`: Log-scale projected duration to exhaust 10,000 PIN space across defense tiers.
+* `progressive_lockout_steep.png`: Step staircase visualizing consecutive failed attempt escalation and HTTP 429 cooldowns.
+
+---
+
+## Lab Credential Notice: Research Gatekeeper
+
+> [!NOTE]
+> **Researcher Access PIN (`2468`):**
+> The default PIN `2468` in `ResearchAuthenticator.kt` is a **deliberate, documented lab test-bench credential** intended strictly to automate test device calibration and developer metrics unlocking during synthetic attacks (see `test_pin_generator.py` and `main.py`).
+>
+> Application credential storage and hardware-backed user verification are decoupled and implemented in `:core:security` (`SecurePinStore` and `PinVerifier`).
+
+---
+
+## Security Case Study: The Migration Shim Trap
+
+During an architectural security audit of `SecurePinStore.kt`, a subtle but critical real-world vulnerability was identified and resolved:
+
+* **The Trap**: To maintain backward compatibility with early prototype releases, the store originally contained an unconditional write to unencrypted SharedPreferences:
+  ```kotlin
+  legacyPrefs.edit()
+      .putString(LEGACY_VERIFIER_KEY, cryptoService.toHex(cryptoService.hashSha256(pin)))
+      .apply()
+  ```
+* **The Impact**: Even when an administrator selected `PBKDF2_HMAC_SHA256` with hardware-backed AES-256-GCM Keystore encryption, an unsalted single-iteration SHA-256 hash was still written to plaintext XML storage (`secure_vault_lab.xml`). An attacker with ADB backup or local read access could crack the unsalted hash in less than 2 milliseconds, completely nullifying the Keystore hardware boundary.
+* **The Fix**: Implemented an explicit **Zero-Persistence Legacy Policy**: saving with `PBKDF2_HMAC_SHA256` actively purges `LEGACY_VERIFIER_KEY` from legacy storage (`legacyPrefs.edit().remove(...).apply()`), preventing migration shims from silently undermining modern defense layers.
+
+Full threat modeling, assumptions, and quantitative results are documented in [THREAT_MODEL.md](THREAT_MODEL.md).
+
 ---
 
 ## Research Disclaimer
 
 This project is created strictly for **academic and security research purposes** to demonstrate the importance of multi-factor authentication, account lockouts, rate limiting, and secure hardware keystores (e.g., Android Keystore / StrongBox). Do not use this software against any target without explicit authorization.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
