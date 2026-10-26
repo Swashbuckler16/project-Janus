@@ -11,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.atharva.securevault.ui.theme.*
@@ -43,60 +43,58 @@ fun CompromiseReportScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Threat Alert Icon Badge
+        // Minimalist Security Indicator
         Box(
             modifier = Modifier
-                .size(88.dp)
+                .size(68.dp)
                 .clip(CircleShape)
-                .background(StatusCriticalContainer)
-                .border(2.dp, StatusCritical, CircleShape),
+                .background(SurfaceElevatedDark)
+                .border(1.dp, OutlineDark, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Outlined.WarningAmber,
-                contentDescription = "Threat Alert",
-                tint = StatusCritical,
-                modifier = Modifier.size(48.dp)
+                imageVector = Icons.Outlined.LockOpen,
+                contentDescription = "Alert",
+                tint = TextPrimary,
+                modifier = Modifier.size(32.dp)
             )
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Threat Header
         Text(
-            text = "FORENSIC INCIDENT REPORT",
-            color = StatusCritical,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
+            text = "SECURITY AUDIT",
+            color = TextSecondary,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
             letterSpacing = 2.sp
         )
 
         Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            text = "Authentication Barrier Broken",
+            text = "Authentication Unlocked",
             color = TextPrimary,
-            fontSize = 24.sp,
+            fontSize = 22.sp,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            text = "Automated adversary enumeration discovered the target authentication credential.",
-            color = TextSecondary,
+            text = "Credential verified via evaluation harness.",
+            color = TextMuted,
             fontSize = 13.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 8.dp)
+            textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Forensic Diagnostics Card
+        // Telemetry Card
         OutlinedCard(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.outlinedCardColors(
                 containerColor = SurfaceDark
             ),
@@ -105,7 +103,7 @@ fun CompromiseReportScreen(
             )
         ) {
             Column(
-                modifier = Modifier.padding(20.dp)
+                modifier = Modifier.padding(18.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -113,59 +111,59 @@ fun CompromiseReportScreen(
                     Icon(
                         imageVector = Icons.Outlined.Shield,
                         contentDescription = null,
-                        tint = StatusCritical,
-                        modifier = Modifier.size(18.dp)
+                        tint = TextPrimary,
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "INCIDENT TELEMETRY",
+                        text = "SESSION METRICS",
                         color = TextPrimary,
-                        fontSize = 13.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 HorizontalDivider(color = OutlineVariantDark)
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 TelemetryDataRow(
-                    label = "Attack Vector",
-                    value = "Automated HTTP PIN Enumeration",
+                    label = "Verification Method",
+                    value = "Automated Harness",
                     isMonospace = false
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 TelemetryDataRow(
-                    label = "Harness Target Endpoint",
-                    value = "/lab/verify (Port 8080)",
+                    label = "Harness Endpoint",
+                    value = ":8080/lab/verify",
                     isMonospace = true
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 TelemetryDataRow(
-                    label = "Total Enumeration Attempts",
-                    value = "$attempts attempts",
+                    label = "Total Attempts",
+                    value = "$attempts",
                     isMonospace = true
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 TelemetryDataRow(
-                    label = "Final Verification Latency",
-                    value = "$responseTime ms",
+                    label = "Response Latency",
+                    value = "${responseTime}ms",
                     isMonospace = true
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 TelemetryDataRow(
-                    label = "Enclave Security Status",
-                    value = "UNLOCKED (BREACH)",
-                    valueColor = StatusCritical,
+                    label = "Enclave State",
+                    value = "Unlocked",
+                    valueColor = TextPrimary,
                     isMonospace = true
                 )
             }
@@ -173,40 +171,42 @@ fun CompromiseReportScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Action Buttons
+        // Action Buttons - Formatted with maxLines and proper padding to prevent text continuation
         Button(
             onClick = onViewVault,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(12.dp),
+                .height(50.dp),
+            shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = PrimaryCyan,
+                containerColor = PrimaryWhite,
                 contentColor = OnPrimaryDark
             )
         ) {
             Icon(
                 imageVector = Icons.Outlined.LockOpen,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "INSPECT COMPROMISED VAULT",
+                text = "Inspect Vault",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         OutlinedButton(
             onClick = onLock,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(12.dp),
+                .height(50.dp),
+            shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = TextPrimary
             ),
@@ -219,10 +219,12 @@ fun CompromiseReportScreen(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "RE-ARM DEFENSE ENGINE & LOCK",
-                fontSize = 13.sp,
+                text = "Lock & Re-arm",
+                fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.5.sp
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -232,7 +234,7 @@ fun CompromiseReportScreen(
 private fun TelemetryDataRow(
     label: String,
     value: String,
-    valueColor: Color = TextPrimary,
+    valueColor: Color = TextSecondary,
     isMonospace: Boolean = false
 ) {
     Row(
@@ -242,7 +244,7 @@ private fun TelemetryDataRow(
     ) {
         Text(
             text = label,
-            color = TextSecondary,
+            color = TextMuted,
             fontSize = 12.sp
         )
         Text(

@@ -1,7 +1,6 @@
 package com.atharva.securevault.ui.theme
 
 import android.app.Activity
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -10,12 +9,12 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val ResearchDarkColorScheme = darkColorScheme(
-    primary = PrimaryCyan,
+private val MinimalistDarkColorScheme = darkColorScheme(
+    primary = PrimaryWhite,
     onPrimary = OnPrimaryDark,
     primaryContainer = PrimaryContainerDark,
     onPrimaryContainer = OnPrimaryContainerDark,
-    secondary = SecondaryBlue,
+    secondary = SecondaryGray,
     tertiary = TertiaryPurple,
     background = BackgroundDark,
     onBackground = TextPrimary,
@@ -27,16 +26,16 @@ private val ResearchDarkColorScheme = darkColorScheme(
     outlineVariant = OutlineVariantDark,
     error = StatusCritical,
     errorContainer = StatusCriticalContainer,
-    onError = TextPrimary,
-    onErrorContainer = OnStatusCritical
+    onError = OnPrimaryDark,
+    onErrorContainer = TextPrimary
 )
 
 @Composable
 fun SecureVaultTheme(
-    darkTheme: Boolean = true, // Default to sleek research dark theme
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = ResearchDarkColorScheme
+    val colorScheme = MinimalistDarkColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {

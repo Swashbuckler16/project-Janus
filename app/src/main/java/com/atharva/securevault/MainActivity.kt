@@ -3,9 +3,7 @@ package com.atharva.securevault
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,7 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Backspace
@@ -30,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.atharva.securevault.authentication.PinAuthenticator
@@ -124,7 +122,7 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * Modern Research-Grade Android Lock Screen
+ * Minimalist Dichromatic Lock Screen
  */
 @Composable
 fun SecureVaultScreen(
@@ -154,19 +152,11 @@ fun SecureVaultScreen(
     val isLockedOut = remainingCooldown > 0 || defenseState.tier == LockoutTier.PERMANENT_LOCKOUT
 
     val statusPillText = when {
-        defenseState.tier == LockoutTier.PERMANENT_LOCKOUT -> "SECURITY LOCKDOWN // RESET IN LAB"
-        remainingCooldown > 0 -> "COOLDOWN ENFORCED // ${remainingCooldown}s REMAINING"
-        defenseState.tier == LockoutTier.THROTTLED -> "THROTTLE ACTIVE // +500ms JITTER INJECTION"
+        defenseState.tier == LockoutTier.PERMANENT_LOCKOUT -> "Device Locked • Reset in Lab"
+        remainingCooldown > 0 -> "Cooldown Active • ${remainingCooldown}s"
+        defenseState.tier == LockoutTier.THROTTLED -> "Rate Limited"
         userFeedbackMessage != null -> userFeedbackMessage!!
-        else -> "ENTER 4-DIGIT ENCLAVE PIN"
-    }
-
-    val statusPillColor = when {
-        isLockedOut -> StatusCritical
-        defenseState.tier == LockoutTier.THROTTLED -> StatusWarning
-        userFeedbackMessage == "✓ ACCESS GRANTED" -> StatusSuccess
-        isPinIncorrect -> StatusCritical
-        else -> PrimaryCyan
+        else -> "Enter Passcode"
     }
 
     Column(
@@ -177,7 +167,7 @@ fun SecureVaultScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Top System Status Bar
+        // Top Minimalist Status Row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -185,53 +175,35 @@ fun SecureVaultScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Hardware TEE Status Chip
+            Text(
+                text = "SECURE VAULT",
+                color = TextSecondary,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.5.sp
+            )
+
             Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(SurfaceVariantDark)
-                    .border(1.dp, OutlineDark, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(SurfaceDark)
+                    .border(1.dp, OutlineDark, RoundedCornerShape(6.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(if (pinStore.isHardwareProtected()) StatusSuccess else StatusWarning)
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint = TextSecondary,
+                    modifier = Modifier.size(12.dp)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = if (pinStore.isHardwareProtected()) "TEE STRONGBOX" else "KEYSTORE AES",
+                    text = if (pinStore.isHardwareProtected()) "HARDWARE" else "SOFTWARE",
                     color = TextSecondary,
                     fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            // Daemon Active Beacon
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(SurfaceVariantDark)
-                    .border(1.dp, OutlineDark, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(StatusSuccess)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "DAEMON :8080",
-                    color = StatusSuccess,
-                    fontSize = 10.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
@@ -240,69 +212,53 @@ fun SecureVaultScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Shield Icon Container
             Box(
                 modifier = Modifier
-                    .size(68.dp)
+                    .size(64.dp)
                     .clip(CircleShape)
-                    .background(if (isLockedOut) StatusCriticalContainer else PrimaryContainerDark)
-                    .border(1.5.dp, if (isLockedOut) StatusCritical else PrimaryCyan, CircleShape),
+                    .background(SurfaceElevatedDark)
+                    .border(1.dp, OutlineDark, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = if (isLockedOut) Icons.Outlined.Lock else Icons.Outlined.Shield,
                     contentDescription = "Security Status",
-                    tint = if (isLockedOut) StatusCritical else PrimaryCyan,
-                    modifier = Modifier.size(32.dp)
+                    tint = TextPrimary,
+                    modifier = Modifier.size(28.dp)
                 )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Project Janus",
+                color = TextPrimary,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.5.sp
+            )
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            Text(
-                text = "PROJECT JANUS",
-                color = TextPrimary,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "Dual-Faced Authentication Testbed",
-                color = TextMuted,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Normal
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Status Pill
+            // Clean Monochrome Status Badge
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        when {
-                            isLockedOut -> StatusCriticalContainer
-                            defenseState.tier == LockoutTier.THROTTLED -> StatusWarningContainer
-                            else -> SurfaceVariantDark
-                        }
-                    )
-                    .border(1.dp, statusPillColor.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                    .background(SurfaceVariantDark)
+                    .border(1.dp, OutlineDark, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
                 Text(
                     text = statusPillText,
-                    color = statusPillColor,
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 0.5.sp
+                    color = if (isLockedOut || isPinIncorrect) TextPrimary else TextSecondary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             // PIN Indicator Slots
             Row(
@@ -313,23 +269,14 @@ fun SecureVaultScreen(
                     val isEntered = index < pin.length
                     Box(
                         modifier = Modifier
-                            .size(16.dp)
+                            .size(14.dp)
                             .clip(CircleShape)
                             .background(
-                                when {
-                                    isEntered && isLockedOut -> StatusCritical
-                                    isEntered && isPinIncorrect -> StatusCritical
-                                    isEntered -> PrimaryCyan
-                                    else -> Color.Transparent
-                                }
+                                if (isEntered) PrimaryWhite else Color.Transparent
                             )
                             .border(
-                                width = 1.5.dp,
-                                color = when {
-                                    isLockedOut -> StatusCritical.copy(alpha = 0.4f)
-                                    isEntered -> PrimaryCyan
-                                    else -> OutlineDark
-                                },
+                                width = 1.dp,
+                                color = if (isEntered) PrimaryWhite else OutlineDark,
                                 shape = CircleShape
                             )
                     )
@@ -382,10 +329,10 @@ fun SecureVaultScreen(
                                                 labServer.defenseManager.recordAttemptResult(isCorrect, defenseMode)
 
                                                 if (isCorrect) {
-                                                    userFeedbackMessage = "✓ ACCESS GRANTED"
+                                                    userFeedbackMessage = "Access Granted"
                                                 } else {
                                                     isPinIncorrect = true
-                                                    userFeedbackMessage = "INCORRECT CREDENTIAL"
+                                                    userFeedbackMessage = "Incorrect PIN"
                                                     pin = ""
                                                 }
                                             }
@@ -399,7 +346,7 @@ fun SecureVaultScreen(
             }
         }
 
-        // Bottom Controls
+        // Bottom Controls - Clean single-line button
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -408,37 +355,31 @@ fun SecureVaultScreen(
                 onClick = onOpenLab,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
+                    .height(50.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = PrimaryCyan
+                    containerColor = SurfaceDark,
+                    contentColor = TextPrimary
                 ),
                 border = BorderStroke(1.dp, OutlineDark)
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Science,
                     contentDescription = null,
+                    tint = TextPrimary,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "RESEARCH CALIBRATION BENCH",
-                    fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
+                    text = "Security Bench",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.5.sp,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Text(
-                text = "FAILED ATTEMPTS: ${defenseState.failedAttempts}  |  TIER: ${defenseState.tier.displayName.uppercase()}",
-                color = TextMuted,
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Medium
-            )
         }
     }
 }
@@ -498,7 +439,7 @@ private fun TactileKeycap(
 }
 
 /**
- * Professional Research Calibration & Telemetry Bench
+ * Clean & Professional Security Calibration Bench
  */
 @Composable
 fun SecurityLabScreen(
@@ -545,14 +486,14 @@ fun SecurityLabScreen(
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "RESEARCH BENCH",
+                    text = "SECURITY BENCH",
                     color = TextPrimary,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.5.sp
                 )
                 Text(
-                    text = "Adversarial Configuration & Metrics",
+                    text = "Configuration & Diagnostics",
                     color = TextMuted,
                     fontSize = 11.sp
                 )
@@ -561,7 +502,7 @@ fun SecurityLabScreen(
             IconButton(
                 onClick = {
                     labServer.resetAttempts()
-                    saveMessage = "Telemetry counters reset."
+                    saveMessage = "Telemetry counters reset"
                 },
                 modifier = Modifier
                     .clip(CircleShape)
@@ -571,17 +512,17 @@ fun SecurityLabScreen(
                 Icon(
                     imageVector = Icons.Outlined.Refresh,
                     contentDescription = "Reset Telemetry",
-                    tint = PrimaryCyan
+                    tint = TextPrimary
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Hardware Security Enclave Card
+        // Hardware Enclave Info Card
         OutlinedCard(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.outlinedCardColors(containerColor = SurfaceDark),
             border = CardDefaults.outlinedCardBorder().copy(
                 brush = androidx.compose.ui.graphics.SolidColor(OutlineDark)
@@ -593,16 +534,17 @@ fun SecurityLabScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
-                        .background(if (pinStore.isHardwareProtected()) StatusSuccessContainer else StatusWarningContainer),
+                        .background(SurfaceElevatedDark)
+                        .border(1.dp, OutlineDark, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Memory,
                         contentDescription = null,
-                        tint = if (pinStore.isHardwareProtected()) StatusSuccess else StatusWarning,
-                        modifier = Modifier.size(22.dp)
+                        tint = TextPrimary,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
@@ -610,15 +552,15 @@ fun SecurityLabScreen(
 
                 Column {
                     Text(
-                        text = if (pinStore.isHardwareProtected()) "Hardware TEE / StrongBox Active" else "Android Keystore Emulation",
+                        text = if (pinStore.isHardwareProtected()) "Hardware TEE Active" else "Keystore Emulation Active",
                         color = TextPrimary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Master Key: AES-256-GCM | Non-exportable hardware vault",
-                        color = TextMuted,
+                        text = "AES-256-GCM Master Key",
+                        color = TextSecondary,
                         fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace
                     )
@@ -626,10 +568,10 @@ fun SecurityLabScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // Section: Cryptographic Derivation
-        SectionHeader(title = "KEY DERIVATION ALGORITHM", icon = Icons.Outlined.Key)
+        // Section: Key Derivation Algorithm
+        SectionHeader(title = "KEY DERIVATION", icon = Icons.Outlined.Key)
 
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -640,34 +582,32 @@ fun SecurityLabScreen(
             AlgorithmSelectorCard(
                 modifier = Modifier.weight(1f),
                 title = "PBKDF2-HMAC",
-                subtitle = "100k rounds + Salt",
+                subtitle = "100k rounds + salt",
                 isSelected = selectedAlgorithm == HashAlgorithm.PBKDF2_HMAC_SHA256,
                 badgeText = "HARDENED",
-                badgeColor = StatusSuccess,
                 onClick = { selectedAlgorithm = HashAlgorithm.PBKDF2_HMAC_SHA256 }
             )
 
             AlgorithmSelectorCard(
                 modifier = Modifier.weight(1f),
                 title = "SHA-256",
-                subtitle = "Single pass / Unsalted",
+                subtitle = "Single pass",
                 isSelected = selectedAlgorithm == HashAlgorithm.LEGACY_SHA256,
-                badgeText = "VULNERABLE",
-                badgeColor = StatusCritical,
+                badgeText = "BASELINE",
                 onClick = { selectedAlgorithm = HashAlgorithm.LEGACY_SHA256 }
             )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Section: Target Credential
-        SectionHeader(title = "TARGET BENCH CREDENTIAL", icon = Icons.Outlined.Password)
+        SectionHeader(title = "TARGET CREDENTIAL", icon = Icons.Outlined.Password)
 
         Spacer(modifier = Modifier.height(10.dp))
 
         OutlinedCard(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.outlinedCardColors(containerColor = SurfaceDark),
             border = CardDefaults.outlinedCardBorder().copy(
                 brush = androidx.compose.ui.graphics.SolidColor(OutlineDark)
@@ -689,7 +629,7 @@ fun SecurityLabScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = TextPrimary,
                         unfocusedTextColor = TextPrimary,
-                        focusedBorderColor = PrimaryCyan,
+                        focusedBorderColor = PrimaryWhite,
                         unfocusedBorderColor = OutlineDark,
                         focusedContainerColor = SurfaceVariantDark,
                         unfocusedContainerColor = SurfaceVariantDark
@@ -707,23 +647,27 @@ fun SecurityLabScreen(
                     onClick = {
                         if (targetPin.length == 4) {
                             pinStore.savePin(targetPin, selectedAlgorithm)
-                            saveMessage = "✓ Target PIN synchronized under ${selectedAlgorithm.name}."
+                            saveMessage = "Target PIN updated successfully"
                         } else {
-                            saveMessage = "Error: Input must contain exactly 4 numeric digits."
+                            saveMessage = "Input must contain 4 digits"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryCyan,
+                        containerColor = PrimaryWhite,
                         contentColor = OnPrimaryDark
                     )
                 ) {
                     Text(
-                        text = "COMMIT CREDENTIAL TO SECURE STORE",
-                        fontSize = 12.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold
+                        text = "Save Target PIN",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -731,7 +675,7 @@ fun SecurityLabScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = saveMessage!!,
-                        color = if (saveMessage!!.startsWith("✓")) StatusSuccess else StatusCritical,
+                        color = TextSecondary,
                         fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace
                     )
@@ -739,18 +683,17 @@ fun SecurityLabScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Section: Defensive Policy Matrix
-        SectionHeader(title = "DEFENSIVE COUNTERMEASURE POLICY", icon = Icons.Outlined.Security)
+        SectionHeader(title = "DEFENSE POLICY", icon = Icons.Outlined.Security)
 
         Spacer(modifier = Modifier.height(10.dp))
 
         DefensePolicyCard(
-            title = "Enterprise Defense Engine",
-            description = "Token-Bucket traffic shaping + 4-tier progressive exponential lockout (HTTP 429).",
-            badge = "RECOMMENDED",
-            badgeColor = StatusSuccess,
+            title = "Token-Bucket Rate Limiter",
+            description = "Progressive exponential lockout with token bucket shaping.",
+            badge = "HARDENED",
             isSelected = defenseMode == DefenseMode.ENTERPRISE_TOKEN_BUCKET,
             onClick = { labServer.setDefenseMode(DefenseMode.ENTERPRISE_TOKEN_BUCKET) }
         )
@@ -758,10 +701,9 @@ fun SecurityLabScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         DefensePolicyCard(
-            title = "Sliding Window Rate Limiter",
-            description = "Fixed window threshold allowing 5 requests per 10-second evaluation frame.",
-            badge = "INTERMEDIATE",
-            badgeColor = StatusWarning,
+            title = "Sliding Window Limiter",
+            description = "Fixed window allowing 5 requests per 10-second evaluation frame.",
+            badge = "STANDARD",
             isSelected = defenseMode == DefenseMode.SLIDING_WINDOW,
             onClick = { labServer.setDefenseMode(DefenseMode.SLIDING_WINDOW) }
         )
@@ -769,24 +711,23 @@ fun SecurityLabScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         DefensePolicyCard(
-            title = "Unprotected Baseline Mode",
-            description = "Zero artificial delays or request throttling for raw brute-force baseline capture.",
-            badge = "VULNERABLE",
-            badgeColor = StatusCritical,
+            title = "Unprotected Baseline",
+            description = "Zero artificial delays or request throttling.",
+            badge = "BASELINE",
             isSelected = defenseMode == DefenseMode.NONE,
             onClick = { labServer.setDefenseMode(DefenseMode.NONE) }
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // Section: Live Telemetry Diagnostics
-        SectionHeader(title = "LIVE DEFENSE ENGINE DIAGNOSTICS", icon = Icons.Outlined.Analytics)
+        // Section: Diagnostics
+        SectionHeader(title = "DEFENSE DIAGNOSTICS", icon = Icons.Outlined.Analytics)
 
         Spacer(modifier = Modifier.height(10.dp))
 
         OutlinedCard(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.outlinedCardColors(containerColor = SurfaceDark),
             border = CardDefaults.outlinedCardBorder().copy(
                 brush = androidx.compose.ui.graphics.SolidColor(OutlineDark)
@@ -801,23 +742,13 @@ fun SecurityLabScreen(
                     Text(text = "Escalation Tier", color = TextSecondary, fontSize = 12.sp)
                     Box(
                         modifier = Modifier
-                            .background(
-                                when (defenseState.tier) {
-                                    LockoutTier.NORMAL -> StatusSuccessContainer
-                                    LockoutTier.THROTTLED -> StatusWarningContainer
-                                    else -> StatusCriticalContainer
-                                },
-                                shape = RoundedCornerShape(6.dp)
-                            )
+                            .background(SurfaceElevatedDark, shape = RoundedCornerShape(6.dp))
+                            .border(1.dp, OutlineDark, RoundedCornerShape(6.dp))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = defenseState.tier.displayName.uppercase(),
-                            color = when (defenseState.tier) {
-                                LockoutTier.NORMAL -> StatusSuccess
-                                LockoutTier.THROTTLED -> StatusWarning
-                                else -> StatusCritical
-                            },
+                            color = TextPrimary,
                             fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold
@@ -827,15 +758,14 @@ fun SecurityLabScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Token Bucket Fuel Gauge
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "Token Bucket Capacity", color = TextSecondary, fontSize = 12.sp)
+                    Text(text = "Token Capacity", color = TextSecondary, fontSize = 12.sp)
                     Text(
-                        text = "${String.format("%.1f", defenseState.remainingTokens)} / 5.0 tokens",
-                        color = PrimaryCyan,
+                        text = "${String.format("%.1f", defenseState.remainingTokens)} / 5.0",
+                        color = TextPrimary,
                         fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold
@@ -848,10 +778,10 @@ fun SecurityLabScreen(
                     progress = { (defenseState.remainingTokens / 5.0).toFloat().coerceIn(0f, 1f) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = PrimaryCyan,
-                    trackColor = SurfaceVariantDark,
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = PrimaryWhite,
+                    trackColor = SurfaceElevatedDark
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -860,10 +790,10 @@ fun SecurityLabScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "Consecutive Failed Attempts", color = TextSecondary, fontSize = 12.sp)
+                    Text(text = "Failed Attempts", color = TextSecondary, fontSize = 12.sp)
                     Text(
                         text = "${defenseState.failedAttempts}",
-                        color = if (defenseState.failedAttempts > 0) StatusWarning else TextPrimary,
+                        color = TextPrimary,
                         fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold
@@ -876,7 +806,7 @@ fun SecurityLabScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "Daemon Inbound Request Count", color = TextSecondary, fontSize = 12.sp)
+                    Text(text = "Inbound Request Count", color = TextSecondary, fontSize = 12.sp)
                     Text(
                         text = "$attempts",
                         color = TextPrimary,
@@ -890,22 +820,27 @@ fun SecurityLabScreen(
 
                 OutlinedButton(
                     onClick = { labServer.resetAttempts() },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
                     border = BorderStroke(1.dp, OutlineDark)
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.RestartAlt,
                         contentDescription = null,
+                        tint = TextPrimary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "PURGE LOCKOUT STATE & RESET",
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold
+                        text = "Reset Defense State",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -921,7 +856,7 @@ private fun SectionHeader(title: String, icon: ImageVector) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = PrimaryCyan,
+            tint = TextPrimary,
             modifier = Modifier.size(16.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
@@ -942,7 +877,6 @@ private fun AlgorithmSelectorCard(
     subtitle: String,
     isSelected: Boolean,
     badgeText: String,
-    badgeColor: Color,
     onClick: () -> Unit
 ) {
     OutlinedCard(
@@ -953,20 +887,20 @@ private fun AlgorithmSelectorCard(
         ),
         border = CardDefaults.outlinedCardBorder().copy(
             brush = androidx.compose.ui.graphics.SolidColor(
-                if (isSelected) PrimaryCyan else OutlineDark
+                if (isSelected) PrimaryWhite else OutlineDark
             )
         )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Box(
                 modifier = Modifier
-                    .background(badgeColor.copy(alpha = 0.2f), shape = RoundedCornerShape(4.dp))
-                    .border(1.dp, badgeColor.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                    .background(SurfaceElevatedDark, shape = RoundedCornerShape(4.dp))
+                    .border(1.dp, OutlineDark, RoundedCornerShape(4.dp))
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Text(
                     text = badgeText,
-                    color = badgeColor,
+                    color = TextSecondary,
                     fontSize = 9.sp,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold
@@ -979,7 +913,9 @@ private fun AlgorithmSelectorCard(
                 text = title,
                 color = TextPrimary,
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -987,7 +923,9 @@ private fun AlgorithmSelectorCard(
             Text(
                 text = subtitle,
                 color = TextMuted,
-                fontSize = 10.sp
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -998,7 +936,6 @@ private fun DefensePolicyCard(
     title: String,
     description: String,
     badge: String,
-    badgeColor: Color,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
@@ -1012,7 +949,7 @@ private fun DefensePolicyCard(
         ),
         border = CardDefaults.outlinedCardBorder().copy(
             brush = androidx.compose.ui.graphics.SolidColor(
-                if (isSelected) PrimaryCyan else OutlineDark
+                if (isSelected) PrimaryWhite else OutlineDark
             )
         )
     ) {
@@ -1024,7 +961,7 @@ private fun DefensePolicyCard(
                 selected = isSelected,
                 onClick = onClick,
                 colors = RadioButtonDefaults.colors(
-                    selectedColor = PrimaryCyan,
+                    selectedColor = PrimaryWhite,
                     unselectedColor = OutlineDark
                 )
             )
@@ -1044,12 +981,13 @@ private fun DefensePolicyCard(
                     )
                     Box(
                         modifier = Modifier
-                            .background(badgeColor.copy(alpha = 0.2f), shape = RoundedCornerShape(4.dp))
+                            .background(SurfaceElevatedDark, shape = RoundedCornerShape(4.dp))
+                            .border(1.dp, OutlineDark, RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = badge,
-                            color = badgeColor,
+                            color = TextSecondary,
                             fontSize = 9.sp,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold
@@ -1070,7 +1008,7 @@ private fun DefensePolicyCard(
 }
 
 /**
- * Deliberate Lab-Only Research Gateway
+ * Clean Deliberate Lab Authorization Screen
  */
 @Composable
 fun ResearchModeScreen(
@@ -1115,26 +1053,26 @@ fun ResearchModeScreen(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
                 modifier = Modifier
-                    .size(68.dp)
+                    .size(64.dp)
                     .clip(CircleShape)
-                    .background(PrimaryContainerDark)
-                    .border(1.5.dp, PrimaryCyan, CircleShape),
+                    .background(SurfaceElevatedDark)
+                    .border(1.dp, OutlineDark, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.VpnKey,
                     contentDescription = null,
-                    tint = PrimaryCyan,
-                    modifier = Modifier.size(32.dp)
+                    tint = TextPrimary,
+                    modifier = Modifier.size(28.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "RESEARCH GATEWAY",
+                text = "BENCH ACCESS",
                 color = TextPrimary,
-                fontSize = 20.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp
             )
@@ -1142,7 +1080,7 @@ fun ResearchModeScreen(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Bench testbed access (Documented lab credential: 2468)",
+                text = "Enter authorization passkey",
                 color = TextMuted,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
@@ -1154,9 +1092,8 @@ fun ResearchModeScreen(
             if (feedbackMessage != null) {
                 Text(
                     text = feedbackMessage!!,
-                    color = if (isError) StatusCritical else StatusSuccess,
+                    color = TextPrimary,
                     fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -1171,18 +1108,14 @@ fun ResearchModeScreen(
                     val isEntered = index < pin.length
                     Box(
                         modifier = Modifier
-                            .size(16.dp)
+                            .size(14.dp)
                             .clip(CircleShape)
                             .background(
-                                when {
-                                    isEntered && isError -> StatusCritical
-                                    isEntered -> PrimaryCyan
-                                    else -> Color.Transparent
-                                }
+                                if (isEntered) PrimaryWhite else Color.Transparent
                             )
                             .border(
-                                1.5.dp,
-                                if (isEntered) PrimaryCyan else OutlineDark,
+                                1.dp,
+                                if (isEntered) PrimaryWhite else OutlineDark,
                                 CircleShape
                             )
                     )
@@ -1231,11 +1164,11 @@ fun ResearchModeScreen(
 
                                         if (pin.length == 4) {
                                             if (authenticator.verify(pin)) {
-                                                feedbackMessage = "✓ ACCESS GRANTED"
+                                                feedbackMessage = "Access Granted"
                                                 onAuthenticated()
                                             } else {
                                                 isError = true
-                                                feedbackMessage = "INCORRECT LAB CREDENTIAL"
+                                                feedbackMessage = "Invalid Passkey"
                                                 pin = ""
                                             }
                                         }
@@ -1248,7 +1181,6 @@ fun ResearchModeScreen(
             }
         }
 
-        // Bottom spacer to balance layout
         Spacer(modifier = Modifier.height(10.dp))
     }
 }

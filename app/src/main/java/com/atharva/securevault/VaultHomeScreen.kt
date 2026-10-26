@@ -11,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.VpnKey
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -21,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.atharva.securevault.ui.theme.*
@@ -37,58 +37,58 @@ fun VaultHomeScreen(
             .fillMaxSize()
             .background(BackgroundDark)
             .verticalScroll(scrollState)
-            .padding(horizontal = 24.dp, vertical = 28.dp),
+            .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Enclave Unlocked Icon Badge
+        // Minimalist Status Indicator
         Box(
             modifier = Modifier
-                .size(76.dp)
+                .size(64.dp)
                 .clip(CircleShape)
-                .background(StatusSuccessContainer)
-                .border(2.dp, StatusSuccess, CircleShape),
+                .background(SurfaceElevatedDark)
+                .border(1.dp, OutlineDark, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Outlined.Security,
-                contentDescription = "Enclave Active",
-                tint = StatusSuccess,
-                modifier = Modifier.size(40.dp)
+                imageVector = Icons.Outlined.Lock,
+                contentDescription = "Vault Unlocked",
+                tint = TextPrimary,
+                modifier = Modifier.size(28.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "HARDWARE ENCLAVE // UNLOCKED",
-            color = StatusSuccess,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.5.sp
-        )
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Text(
-            text = "Secure Credential Vault",
-            color = TextPrimary,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Text(
-            text = "Encrypted artifacts decrypted from Android Keystore master key.",
+            text = "VAULT UNLOCKED",
             color = TextSecondary,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 2.sp
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Text(
+            text = "Secure Storage",
+            color = TextPrimary,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Text(
+            text = "Hardware keystore decrypted assets",
+            color = TextMuted,
             fontSize = 13.sp
         )
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // Encrypted Data Records List
+        // Protected Assets List
         Text(
-            text = "PROTECTED ASSETS AT REST",
+            text = "PROTECTED ASSETS",
             color = TextMuted,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
@@ -100,80 +100,56 @@ fun VaultHomeScreen(
 
         VaultItemCard(
             icon = Icons.Outlined.VpnKey,
-            title = "Root Keystore Seed Shard",
-            subtitle = "AES-256-GCM / 256-bit entropy enclave",
-            cipherTag = "HARDWARE-TEE"
+            title = "Root Keystore Shard",
+            subtitle = "AES-256-GCM hardware enclave key",
+            cipherTag = "AES-GCM"
         )
 
         Spacer(modifier = Modifier.height(10.dp))
 
         VaultItemCard(
             icon = Icons.Outlined.Description,
-            title = "Cryptographic Auth Tokens",
-            subtitle = "PBKDF2-HMAC-SHA256 authenticated payload",
-            cipherTag = "100k ROUNDS"
+            title = "Cryptographic Payload",
+            subtitle = "PBKDF2-HMAC-SHA256 authenticated data",
+            cipherTag = "PBKDF2"
         )
 
         Spacer(modifier = Modifier.height(10.dp))
 
         VaultItemCard(
             icon = Icons.Outlined.AccountBalance,
-            title = "Encrypted Financial Credentials",
-            subtitle = "Master key wrapped in Android Keystore StrongBox",
-            cipherTag = "AES-GCM"
+            title = "Credential Vault",
+            subtitle = "Hardware-bound protected secrets",
+            cipherTag = "HARDWARE"
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(36.dp))
 
-        // Telemetry note
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(SurfaceVariantDark, shape = RoundedCornerShape(10.dp))
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Verification attempts prior to unlock:",
-                color = TextSecondary,
-                fontSize = 12.sp
-            )
-            Text(
-                text = "$attempts",
-                color = PrimaryCyan,
-                fontSize = 13.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
+        // Lock Action Button - Clean single-line button with high contrast
         Button(
             onClick = onLock,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(12.dp),
+                .height(50.dp),
+            shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = SurfaceElevatedDark,
-                contentColor = TextPrimary
-            ),
-            border = androidx.compose.foundation.BorderStroke(1.dp, OutlineDark)
+                containerColor = PrimaryWhite,
+                contentColor = OnPrimaryDark
+            )
         ) {
             Icon(
                 imageVector = Icons.Outlined.Lock,
                 contentDescription = null,
-                tint = PrimaryCyan,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "SECURE & LOCK VAULT",
+                text = "Lock Vault",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -188,7 +164,7 @@ private fun VaultItemCard(
 ) {
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.outlinedCardColors(
             containerColor = SurfaceDark
         ),
@@ -204,16 +180,17 @@ private fun VaultItemCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
-                    .background(PrimaryContainerDark),
+                    .background(SurfaceElevatedDark)
+                    .border(1.dp, OutlineDark, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = PrimaryCyan,
-                    modifier = Modifier.size(22.dp)
+                    tint = TextPrimary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
@@ -226,17 +203,21 @@ private fun VaultItemCard(
                     text = title,
                     color = TextPrimary,
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = subtitle,
                     color = TextSecondary,
-                    fontSize = 11.sp
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
             Box(
                 modifier = Modifier
@@ -249,7 +230,7 @@ private fun VaultItemCard(
                     color = TextSecondary,
                     fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
