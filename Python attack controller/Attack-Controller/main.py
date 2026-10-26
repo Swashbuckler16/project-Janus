@@ -130,6 +130,12 @@ def get_config():
         help="If rate limited (HTTP 429), sleep for the cooldown duration and retry"
     )
 
+    parser.add_argument(
+        "--pdf",
+        action="store_true",
+        help="Automatically generate a detailed forensic PDF audit report upon experiment completion"
+    )
+
     return parser.parse_args()
 
 
@@ -289,3 +295,17 @@ if __name__ == "__main__":
 
     print()
     print(f"Log file          : {filename}")
+
+    if config.pdf:
+        try:
+            from generate_attack_report import parse_csv_run, create_pdf_report
+            from pathlib import Path
+            csv_path = Path(filename)
+            out_pdf = csv_path.with_name(f"{csv_path.stem}_audit_report.pdf")
+            print(f"\n[*] Generating forensic audit PDF report...")
+            data = parse_csv_run(csv_path)
+            if data:
+                create_pdf_report(data, out_pdf)
+                print(f"[+] Audit PDF Report saved: {out_pdf}")
+        except Exception as e:
+            print(f"[-] Warning: Failed to generate PDF report: {e}")

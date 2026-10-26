@@ -33,11 +33,21 @@ Each row logs an individual verification request sent to the embedded test harne
 | `constant_time` | Boolean confirming constant-time verification flag | `True` |
 | `hardware_backed` | Boolean confirming Keystore hardware-backed TEE/StrongBox key | `True` |
 
-## Generating Publication Plots
+## Generating Publication Plots & Audit PDF Reports
 
 To analyze these datasets and generate the charts:
 
 ```bash
 cd "Python attack controller/Attack-Controller"
 python analyze_results.py
+```
+
+To generate a detailed forensic audit PDF report from any attack run:
+
+```bash
+# Generate report for a specific CSV run:
+python generate_attack_report.py --csv Results/defended_tiered_lockout.csv
+
+# Or automatically generate the PDF report when running an attack:
+python main.py --pdf
 ```
