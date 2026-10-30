@@ -9,13 +9,15 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val MinimalistDarkColorScheme = darkColorScheme(
-    primary = PrimaryWhite,
-    onPrimary = OnPrimaryDark,
+private val ProfessionalDarkColorScheme = darkColorScheme(
+    primary = PrimaryAccent,
+    onPrimary = OnPrimary,
     primaryContainer = PrimaryContainerDark,
     onPrimaryContainer = OnPrimaryContainerDark,
-    secondary = SecondaryGray,
-    tertiary = TertiaryPurple,
+    secondary = SecondarySlate,
+    onSecondary = TextPrimary,
+    tertiary = StatusInfo,
+    onTertiary = OnPrimary,
     background = BackgroundDark,
     onBackground = TextPrimary,
     surface = SurfaceDark,
@@ -26,8 +28,8 @@ private val MinimalistDarkColorScheme = darkColorScheme(
     outlineVariant = OutlineVariantDark,
     error = StatusCritical,
     errorContainer = StatusCriticalContainer,
-    onError = OnPrimaryDark,
-    onErrorContainer = TextPrimary
+    onError = OnPrimary,
+    onErrorContainer = OnStatusCritical
 )
 
 @Composable
@@ -35,7 +37,7 @@ fun SecureVaultTheme(
     darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = MinimalistDarkColorScheme
+    val colorScheme = ProfessionalDarkColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {
