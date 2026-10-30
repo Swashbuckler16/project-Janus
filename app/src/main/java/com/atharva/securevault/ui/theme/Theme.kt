@@ -9,47 +9,44 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val ProfessionalDarkColorScheme = darkColorScheme(
-    primary = PrimaryAccent,
-    onPrimary = OnPrimary,
-    primaryContainer = PrimaryContainerDark,
-    onPrimaryContainer = OnPrimaryContainerDark,
-    secondary = SecondarySlate,
-    onSecondary = TextPrimary,
-    tertiary = StatusInfo,
-    onTertiary = OnPrimary,
-    background = BackgroundDark,
-    onBackground = TextPrimary,
-    surface = SurfaceDark,
-    onSurface = TextPrimary,
-    surfaceVariant = SurfaceVariantDark,
-    onSurfaceVariant = TextSecondary,
-    outline = OutlineDark,
+private val WarmCoolColorScheme = darkColorScheme(
+    primary = AmberPrimary,
+    onPrimary = SlateDeep,
+    primaryContainer = AmberSurface,
+    onPrimaryContainer = AmberSoft,
+    secondary = SlateLight,
+    onSecondary = SlateDeep,
+    secondaryContainer = SlateElevated,
+    onSecondaryContainer = WarmIvory,
+    tertiary = AmberLight,
+    onTertiary = SlateDeep,
+    background = SlateDeep,
+    onBackground = WarmIvory,
+    surface = SlateSurface,
+    onSurface = WarmIvory,
+    surfaceVariant = SlateElevated,
+    onSurfaceVariant = SlateLight,
+    outline = SlateHighlight,
     outlineVariant = OutlineVariantDark,
-    error = StatusCritical,
-    errorContainer = StatusCriticalContainer,
-    onError = OnPrimary,
-    onErrorContainer = OnStatusCritical
+    error = WarmCoral,
+    onError = SlateDeep
 )
 
 @Composable
 fun SecureVaultTheme(
-    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = ProfessionalDarkColorScheme
-
+    val colorScheme = WarmCoolColorScheme
     val view = LocalView.current
+
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as? Activity)?.window
-            window?.let {
-                it.statusBarColor = BackgroundDark.toArgb()
-                it.navigationBarColor = BackgroundDark.toArgb()
-                WindowCompat.getInsetsController(it, view).apply {
-                    isAppearanceLightStatusBars = false
-                    isAppearanceLightNavigationBars = false
-                }
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
             }
         }
     }

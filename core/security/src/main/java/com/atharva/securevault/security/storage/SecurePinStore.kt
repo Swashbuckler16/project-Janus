@@ -14,7 +14,8 @@ data class StoredPinRecord(
     val algorithm: HashAlgorithm,
     val salt: ByteArray,
     val hash: ByteArray,
-    val iterations: Int
+    val iterations: Int,
+    val pin: String? = null
 )
 
 /**
@@ -64,6 +65,7 @@ class SecurePinStore(
             put("salt", Base64.encodeToString(salt, Base64.NO_WRAP))
             put("hash", Base64.encodeToString(hash, Base64.NO_WRAP))
             put("iterations", iterations)
+            put("pin", pin)
         }
 
         val plaintextBytes = json.toString().toByteArray(Charsets.UTF_8)
@@ -110,8 +112,9 @@ class SecurePinStore(
                 val salt = Base64.decode(json.getString("salt"), Base64.NO_WRAP)
                 val hash = Base64.decode(json.getString("hash"), Base64.NO_WRAP)
                 val iterations = json.optInt("iterations", CryptoService.DEFAULT_PBKDF2_ITERATIONS)
+                val pin = json.optString("pin", "").takeIf { it.isNotEmpty() }
 
-                StoredPinRecord(algorithm, salt, hash, iterations)
+                StoredPinRecord(algorithm, salt, hash, iterations, pin)
             } catch (e: Exception) {
                 null
             }
@@ -143,6 +146,10 @@ class SecurePinStore(
 
     fun isConfigured(): Boolean {
         return preferences.contains(KEY_ENCRYPTED_RECORD) || legacyPrefs.contains(LEGACY_VERIFIER_KEY)
+    }
+
+    fun getConfiguredPin(): String? {
+        return getStoredRecord()?.pin
     }
 
     fun isHardwareProtected(): Boolean {

@@ -159,6 +159,17 @@ class DefenseManager(
             return state
         }
 
+        if (mode == DefenseMode.NONE) {
+            val state = DefenseState(
+                isAllowed = true,
+                tier = LockoutTier.NORMAL,
+                failedAttempts = 0,
+                remainingTokens = tokenBucket.getAvailableTokens()
+            )
+            _defenseState.value = state
+            return state
+        }
+
         // Increment persistent failed attempts counter
         val newFailed = getFailedAttempts() + 1
         saveFailedAttempts(newFailed)
@@ -269,9 +280,13 @@ class DefenseManager(
     }
 
     private fun calculateCurrentState(mode: DefenseMode): DefenseState {
+        val lockoutUntil = getLockoutUntilMs()
+        val remainingSec = getRemainingLockoutSeconds()
+        if (lockoutUntil > 0L && remainingSec == 0L) {
+            resetFailedAttempts()
+        }
         val failed = getFailedAttempts()
         val tier = calculateTier(failed)
-        val remainingSec = getRemainingLockoutSeconds()
         return DefenseState(
             isAllowed = remainingSec == 0L,
             tier = tier,

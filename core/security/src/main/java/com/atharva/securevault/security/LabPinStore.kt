@@ -24,6 +24,10 @@ class LabPinStore(context: Context) {
         return secureStore.isConfigured()
     }
 
+    fun getConfiguredPin(): String? {
+        return secureStore.getConfiguredPin()
+    }
+
     fun isHardwareProtected(): Boolean {
         return secureStore.isHardwareProtected()
     }
